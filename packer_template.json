@@ -1,0 +1,96 @@
+{
+    "variables": {
+        "ami_users": "{{env `SHARED_ACCOUNT_IDS`}}"
+    },
+    "builders": [{
+            "name": "docker-host",
+            "type": "amazon-ebs",
+            "source_ami_filter": {
+                "filters": {
+                    "virtualization-type": "hvm",
+                    "name": "amzn2-ami-hvm-*-x86_64-ebs",
+                    "root-device-type": "ebs"
+                },
+                "owners": [
+                    "137112412989"
+                ],
+                "most_recent": true
+            },
+            "no_ephemeral": true,
+            "iam_instance_profile": "PackerBuilderRole",
+            "ami_users": "{{user `ami_users`}}",
+            "ami_name": "amzn2-docker-{{timestamp}}",
+            "ami_description": "Amazon Linux 2 With Docker - Build",
+            "encrypt_boot": false,
+            "instance_type": "t3.medium",
+            "subnet_id": "subnet-123",
+            "vpc_id": "vpc-123",
+            "ssh_interface": "private_ip",
+            "ssh_username": "ec2-user",
+            "communicator": "ssh",
+            "run_tags": {
+                "Role": "packer_ami_builder"
+            },
+            "tags": {
+                "build_number": "{{user `build_number`}}"
+            }
+        },
+        {
+            "name": "docker-vanilla-host",
+            "type": "amazon-ebs",
+            "source_ami_filter": {
+                "filters": {
+                    "virtualization-type": "hvm",
+                    "name": "amzn2-ami-hvm-*-x86_64-ebs",
+                    "root-device-type": "ebs"
+                },
+                "owners": [
+                    "137112412989"
+                ],
+                "most_recent": true
+            },
+            "no_ephemeral": true,
+            "iam_instance_profile": "PackerBuilderRole",
+            "ami_users": "{{user `ami_users`}}",
+            "ami_name": "amzn2-docker-vanilla-{{timestamp}}",
+            "ami_description": "Amazon Linux 2 With Docker - Without CodeDeploy - Build",
+            "encrypt_boot": false,
+            "instance_type": "t3.medium",
+            "subnet_id": "subnet-123",
+            "vpc_id": "vpc-123",
+            "ssh_interface": "private_ip",
+            "ssh_username": "ec2-user",
+            "communicator": "ssh",
+            "run_tags": {
+                "Role": "packer_ami_builder"
+            },
+            "tags": {
+                "build_number": "{{user `build_number`}}"
+            }
+        }
+    ],
+    "provisioners": [{
+            "type": "shell",
+            "environment_vars": [],
+            "scripts": [
+                "{{template_dir}}/scripts/provisioning/install-docker.sh",
+                "{{template_dir}}/scripts/provisioning/install-aws-powershell.sh"
+            ]
+        },
+        {
+            "only": [
+                "docker-host"
+            ],
+            "type": "shell",
+            "environment_vars": [],
+            "scripts": [
+                "{{template_dir}}/scripts/provisioning/install-powershell.sh"
+            ]
+        }
+    ],
+    "post-processors": [{
+        "type": "manifest",
+        "output": "manifest.json",
+        "strip_path": true
+    }]
+}
